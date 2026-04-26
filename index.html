@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FT 05 — Constitutional AI and RLAIF</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-card: #0d1117;
+            --bg-code: #161b22;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent: #76B900;
+            --accent-dim: #76B90044;
+            --accent-glow: #76B90033;
+            --border: #21262d;
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+            --font-body: 'Inter', sans-serif;
+            --max-width: 900px;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 17px;
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .hero > * { position: relative; z-index: 1; }
+        .series-label {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+        .hero h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+        .hero h1 .accent { color: var(--accent); }
+        .hero .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 640px;
+            margin-bottom: 2rem;
+        }
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 2.5rem;
+        }
+        .tag {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+            white-space: nowrap;
+        }
+        .pipeline {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            margin-bottom: 1rem;
+            max-width: var(--max-width);
+        }
+        .pipeline-step {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            padding: 0.3rem 0.7rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+        .pipeline-arrow { color: var(--accent); font-size: 0.9rem; font-weight: 700; }
+        .slide {
+            min-height: 100vh;
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 4rem 1.5rem;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .slide-number {
+            font-family: var(--font-display);
+            font-size: 5rem;
+            font-weight: 700;
+            color: var(--accent-dim);
+            position: absolute;
+            top: 2rem;
+            right: 1.5rem;
+            line-height: 1;
+            user-select: none;
+        }
+        .slide h2 {
+            font-family: var(--font-display);
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            line-height: 1.25;
+        }
+        .slide h3 {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .slide p { margin-bottom: 1rem; color: var(--text-secondary); }
+        .slide p strong { color: var(--text-primary); }
+        .slide ul, .slide ol { margin-bottom: 1rem; padding-left: 1.5rem; color: var(--text-secondary); }
+        .slide li { margin-bottom: 0.4rem; }
+        .slide li strong { color: var(--text-primary); }
+        .slide code {
+            font-family: var(--font-mono);
+            font-size: 0.88em;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            padding: 0.05rem 0.35rem;
+            border-radius: 3px;
+            color: #c9d1d9;
+        }
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin: 1.25rem 0;
+            overflow: hidden;
+        }
+        .code-header {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            background: rgba(118, 185, 0, 0.08);
+            padding: 0.4rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .code-block pre { margin: 0; padding: 1rem; overflow-x: auto; }
+        .code-block code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #c9d1d9;
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+        .kw { color: #ff7b72; }
+        .fn { color: #d2a8ff; }
+        .str { color: #a5d6ff; }
+        .cm { color: #8b949e; font-style: italic; }
+        .num { color: #79c0ff; }
+        .type { color: #ffa657; }
+        .dir { color: #ff7b72; }
+        .mac { color: #ffa657; }
+        .table-wrap {
+            overflow-x: auto;
+            margin: 1.25rem 0;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        th {
+            background: var(--bg-code);
+            color: var(--accent);
+            font-weight: 600;
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-family: var(--font-display);
+            white-space: nowrap;
+        }
+        td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:nth-child(even) td { background: rgba(13, 17, 23, 0.5); }
+        .diagram-flow {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .diagram-box {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            text-align: center;
+            white-space: nowrap;
+        }
+        .diagram-box.accent { border-color: var(--accent); color: var(--accent); background: rgba(118, 185, 0, 0.08); }
+        .diagram-box.dim { color: var(--text-secondary); border-color: var(--border); }
+        .diagram-arrow { color: var(--accent); font-size: 1.3rem; font-weight: 700; }
+        .diagram-vertical {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .diagram-vertical .diagram-arrow { font-size: 1.1rem; }
+        .hierarchy {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .hierarchy-level { display: flex; align-items: center; gap: 0.75rem; }
+        .hierarchy-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            min-width: 80px;
+            text-align: right;
+        }
+        .hierarchy-items { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+        .hierarchy-item {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+        .hierarchy-item.accent { border-color: var(--accent); color: var(--accent); background: rgba(118, 185, 0, 0.08); }
+        .diagram-grid {
+            display: grid;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .diagram-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+        .diagram-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .diagram-panel {
+            padding: 1rem;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+        .diagram-panel.accent-border { border-left: 3px solid var(--accent); }
+        .diagram-panel h4 {
+            font-family: var(--font-display);
+            font-size: 1rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+        .diagram-panel p, .diagram-panel ul { font-size: 0.85rem; }
+        .callout {
+            background: var(--bg-card);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            margin: 1.25rem 0;
+        }
+        .callout p { margin-bottom: 0; }
+        .callout p + p { margin-top: 0.5rem; }
+        .callout .callout-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.3rem;
+        }
+        .contents-list { list-style: none; padding-left: 0; counter-reset: contents; }
+        .contents-list li {
+            counter-increment: contents;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .contents-list li:last-child { border-bottom: none; }
+        .contents-list li::before {
+            content: counter(contents, decimal-leading-zero);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            min-width: 2rem;
+        }
+        .contents-list a { color: var(--text-primary); text-decoration: none; transition: color 0.2s; }
+        .contents-list a:hover { color: var(--accent); }
+        .footer {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+        .footer a { color: var(--accent); text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+        .canvas-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.25rem 0;
+            overflow-x: auto;
+        }
+        .canvas-wrap canvas, .canvas-wrap svg { display: block; margin: 0 auto; max-width: 100%; }
+        .badge {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            padding: 0.1rem 0.45rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            vertical-align: middle;
+            margin-left: 0.3rem;
+        }
+        .badge.ok    { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+        .badge.warn  { border-color: #ffa657; color: #ffa657; background: rgba(255,166,87,0.08); }
+        .badge.bad   { border-color: #ff7b72; color: #ff7b72; background: rgba(255,123,114,0.08); }
+        @media (max-width: 640px) {
+            .slide { padding: 3rem 1rem; min-height: auto; }
+            .slide-number { font-size: 3rem; top: 1.5rem; right: 1rem; }
+            .slide h2 { font-size: 1.5rem; }
+            .diagram-grid.cols-2, .diagram-grid.cols-3 { grid-template-columns: 1fr; }
+            .pipeline { gap: 0.15rem; }
+            .pipeline-step { font-size: 0.6rem; padding: 0.2rem 0.4rem; }
+            .hero h1 { font-size: 1.8rem; }
+            table { font-size: 0.78rem; }
+        }
+    </style>
+</head>
+<body>
+<header class="hero">
+    <div class="series-label">Fine-Tuning &amp; PEFT Series &mdash; Presentation 05</div>
+    <h1>Constitutional AI and <span class="accent">RLAIF</span></h1>
+    <p class="subtitle">Critique&ndash;revision loops, principle authoring, replacing human labellers with AI feedback, and the fundamental tensions in the Helpful&ndash;Harmless&ndash;Honest triangle.</p>
+
+    <div class="tags">
+        <span class="tag">Constitutional AI</span>
+        <span class="tag">RLAIF</span>
+        <span class="tag">Critique-Revision</span>
+        <span class="tag">HHH</span>
+        <span class="tag">Anthropic</span>
+        <span class="tag">AI Feedback</span>
+        <span class="tag">Alignment</span>
+        <span class="tag">Safety</span>
+    </div>
+
+    <div class="pipeline">
+        <span class="pipeline-step">SFT Model</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Critique</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Revise</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">SL-CAI</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">RLAIF Labels</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">RL-CAI</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Claude</span>
+    </div>
+</header>
+
+<section class="slide" id="slide-00">
+    <div class="slide-number">00</div>
+    <h2>Topics We'll Cover</h2>
+    <ul class="contents-list">
+        <li><a href="#slide-01">The Constitutional Idea</a></li>
+        <li><a href="#slide-02">Two-Stage CAI &mdash; Supervised + RL</a></li>
+        <li><a href="#slide-03">The Critique-Revision Loop</a></li>
+        <li><a href="#slide-04">Authoring a Constitution &mdash; What Makes Good Principles</a></li>
+        <li><a href="#slide-05">RLAIF &mdash; Replacing Humans with AI Labellers</a></li>
+        <li><a href="#slide-06">Anthropic's Approach in Practice</a></li>
+        <li><a href="#slide-07">Tensions &mdash; Helpfulness vs Harmlessness vs Honesty</a></li>
+        <li><a href="#slide-08">Limits &mdash; What CAI Doesn't Solve</a></li>
+        <li><a href="#slide-09">What to Take Away</a></li>
+    </ul>
+</section>
+
+<section class="slide" id="slide-01">
+    <div class="slide-number">01</div>
+    <h2>The Constitutional Idea</h2>
+    <p>Bai et al. (2022) &mdash; Anthropic &mdash; <em>Constitutional AI: Harmlessness from AI Feedback</em> &mdash; asked a deceptively simple question: can we make a model safer without requiring humans to write large amounts of red-team data or preference labels for harmful content? Reviewing harmful outputs is psychologically damaging to labellers, expensive to scale, and introduces annotation inconsistency.</p>
+
+    <p>The constitutional approach: write a <strong>list of principles</strong> (the "constitution") that the AI should follow, then use the AI itself to critique and revise its own outputs against those principles. Human labellers never need to see harmful content &mdash; they only write the principles once.</p>
+
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Traditional RLHF alignment</h4>
+            <ul>
+                <li>Humans write red-team prompts</li>
+                <li>Model generates harmful responses</li>
+                <li>Humans review and label harmful content (psychologically costly)</li>
+                <li>Preference labels used for RM training</li>
+                <li>Scales poorly &mdash; each new harm category needs new labelling</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>Constitutional AI</h4>
+            <ul>
+                <li>Humans write abstract principles once</li>
+                <li>Model critiques and revises its own outputs</li>
+                <li>Humans never review explicit harmful content</li>
+                <li>AI-generated labels used for RM training (RLAIF)</li>
+                <li>Scales by adding principles to the constitution, not more data</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Why "constitutional"?</div>
+        <p>The analogy is to a legal constitution: a short, high-level document of principles from which specific rules are derived. Rather than an exhaustive ruleset covering every possible harmful output, a constitution provides enough coverage for the model to reason about novel situations by applying the underlying principles. The Anthropic constitution typically runs 16&ndash;60 principles covering harm avoidance, honesty, helpfulness, and values.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-02">
+    <div class="slide-number">02</div>
+    <h2>Two-Stage CAI &mdash; Supervised + RL</h2>
+    <p>Constitutional AI training has two distinct stages, each with a different objective and data source.</p>
+
+    <div class="diagram-vertical">
+        <div class="diagram-box accent">Stage 1 &mdash; SL-CAI (Supervised Learning from Constitutional AI)</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box">Generate initial responses to red-team prompts using a helpful-only SFT model</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box">Critique each response against a sampled constitution principle; revise to be less harmful</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box">Repeat critique-revision K times (typically 1&ndash;3 rounds)</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box">Fine-tune the original model on (prompt, final revised response) pairs &rarr; SL-CAI model</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box accent">Stage 2 &mdash; RL-CAI (RLAIF)</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box">Generate preference pairs: for each prompt, produce two completions</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box">Have the AI (not humans) label which completion better follows the constitution</div>
+        <div class="diagram-arrow">&darr;</div>
+        <div class="diagram-box">Train a reward model on AI-generated labels &rarr; train final policy with RL (PPO)</div>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Key data flow</div>
+        <p>Stage 1 produces better-behaved supervised data. Stage 2 uses that data as the starting policy for RL. The distinction matters: SL-CAI teaches the model what revised responses look like; RL-CAI then optimises the policy to preferentially generate those responses. Without Stage 1, RL-CAI starts from a poorly-calibrated policy and takes much longer to converge.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-03">
+    <div class="slide-number">03</div>
+    <h2>The Critique-Revision Loop</h2>
+    <p>The critique-revision loop is the technical heart of Stage 1. For each red-team prompt, the model is asked to generate, then criticise, then revise its own output, guided by a randomly sampled principle from the constitution.</p>
+
+    <div class="code-block">
+        <div class="code-header">Critique-Revision prompt template (simplified from Anthropic 2022)</div>
+<pre><code><span class="cm">--- INITIAL GENERATION PROMPT ---</span>
+<span class="str">Human: {red_team_prompt}
+Assistant:</span>    <span class="cm">&larr; model generates potentially harmful response</span>
+
+<span class="cm">--- CRITIQUE PROMPT ---</span>
+<span class="str">Identify specific ways in which the assistant's last response is harmful,
+unethical, racist, sexist, toxic, dangerous, or illegal.
+[Constitution principle: "{sampled_principle}"]
+Critique Request: {critique_request}
+Critique:</span>    <span class="cm">&larr; model writes self-critique</span>
+
+<span class="cm">--- REVISION PROMPT ---</span>
+<span class="str">Please rewrite the assistant response to remove any harmful content,
+and to politely point out any factual errors.
+The revised response should still be helpful and informative.
+Revision:</span>    <span class="cm">&larr; model produces revised, safer response</span></code></pre>
+    </div>
+
+    <h3>Iterative Rounds</h3>
+    <p>The original CAI paper ran 1&ndash;3 critique-revision rounds per example. Each round improves the response on the sampled principle. In practice, one round removes the most egregious harms; additional rounds produce diminishing returns and risk the model becoming overly cautious (over-refusal). Most production pipelines use 1&ndash;2 rounds.</p>
+
+    <div class="callout">
+        <div class="callout-label">Principle sampling strategy</div>
+        <p>The Anthropic paper sampled one principle per critique prompt, selecting randomly from the full constitution. This prevents the model from overfitting to any single principle and exposes diverse critique angles across the training set. In practice, principles can also be weighted by category (safety principles sampled more frequently than style principles) to reflect priority.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-04">
+    <div class="slide-number">04</div>
+    <h2>Authoring a Constitution &mdash; What Makes Good Principles</h2>
+    <p>The quality of the constitution directly determines the quality of the trained model. Writing effective principles is harder than it looks. The original Anthropic constitution drew from multiple philosophical, legal, and organisational sources.</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Principle category</th><th>Example principle</th><th>Source inspiration</th></tr></thead>
+            <tbody>
+                <tr><td>Harm avoidance</td><td>"Please choose the assistant response that is least likely to contain harmful or unethical content"</td><td>Utility / rule consequentialism</td></tr>
+                <tr><td>Honesty</td><td>"Choose the response that is least likely to contain deceptive information, or to deceive the human in any way"</td><td>Kantian deontology, journalism ethics</td></tr>
+                <tr><td>Autonomy / rights</td><td>"Which response least endorses or encourages illegal activity?"</td><td>Rule of law, UN Declaration of Human Rights</td></tr>
+                <tr><td>Children's safety</td><td>"Choose the response that avoids content that would be considered inappropriate for children"</td><td>COPPA, BBFC guidelines</td></tr>
+                <tr><td>Thoughtfulness</td><td>"Which response would a thoughtful, senior Anthropic employee be more comfortable seeing?"</td><td>Institutional values</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Good Principle Design Rules</h3>
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Do</h4>
+            <ul>
+                <li>Phrase principles as <strong>comparative</strong> ("choose the response that is <em>less</em> harmful") not absolute ("never produce harmful content") &mdash; comparative phrasing maps directly to the preference labelling task</li>
+                <li>Cover diverse harm categories so random sampling touches the full risk surface</li>
+                <li>Include <strong>positive</strong> principles (be helpful, be informative) alongside harm avoidance &mdash; balances over-refusal</li>
+                <li>Include edge-case principles for persistent problems (jailbreaks, sycophancy)</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>Avoid</h4>
+            <ul>
+                <li>Overly specific rules that only cover narrow scenarios &mdash; the model can't generalise from them</li>
+                <li>Contradictory principles without explicit priority ordering</li>
+                <li>Principles that require real-world knowledge to apply (e.g. "don't produce illegal content in jurisdiction X")</li>
+                <li>Style principles mixed with safety principles &mdash; they should be weighted separately</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<section class="slide" id="slide-05">
+    <div class="slide-number">05</div>
+    <h2>RLAIF &mdash; Replacing Humans with AI Labellers</h2>
+    <p>Lee et al. (2023) &mdash; Google DeepMind &mdash; <em>RLAIF: Scaling Reinforcement Learning from Human Feedback with AI Feedback</em> &mdash; formalised and generalised the RLAIF approach. Their paper showed that on summarisation tasks, RLAIF achieved quality comparable to RLHF despite using no human preference labels in the RL stage.</p>
+
+    <h3>The RLAIF labelling pipeline</h3>
+    <div class="diagram-flow">
+        <div class="diagram-box dim">Prompt x</div>
+        <div class="diagram-arrow">&rarr;</div>
+        <div class="diagram-box dim">Generate (y<sub>w</sub>, y<sub>l</sub>) from current policy</div>
+        <div class="diagram-arrow">&rarr;</div>
+        <div class="diagram-box accent">AI judge: "Which completion better follows [principle]?"</div>
+        <div class="diagram-arrow">&rarr;</div>
+        <div class="diagram-box dim">Soft label: P(y<sub>w</sub> &gt; y<sub>l</sub>) from AI log-probs</div>
+        <div class="diagram-arrow">&rarr;</div>
+        <div class="diagram-box dim">Train reward model on these AI-labelled pairs</div>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Property</th><th>RLHF (human)</th><th>RLAIF (AI)</th></tr></thead>
+            <tbody>
+                <tr><td>Cost per 1 k labels</td><td>$50&ndash;$500 (crowdwork) or $1 000+ (expert)</td><td>$0.50&ndash;$5 (inference cost only)</td></tr>
+                <tr><td>Throughput</td><td>Thousands per day (human bottleneck)</td><td>Millions per day</td></tr>
+                <tr><td>Consistency</td><td>Inter-annotator agreement ~70&ndash;80 % on hard cases</td><td>Deterministic at temperature 0; stochastic but reproducible</td></tr>
+                <tr><td>Bias source</td><td>Human cognitive biases, demographics, fatigue</td><td>Inherits base model biases; position bias (prefers first/second option)</td></tr>
+                <tr><td>Coverage</td><td>Limited by human comfort with harmful content</td><td>Can label any content without psychological harm</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Position bias mitigation</div>
+        <p>AI labellers show strong <strong>position bias</strong>: they tend to favour whichever completion appears first in the prompt. Mitigation: present each pair twice, swapping order; take the majority or average. Anthropic's CAI paper noted this phenomenon and controlled for it explicitly in their evaluation methodology.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-06">
+    <div class="slide-number">06</div>
+    <h2>Anthropic's Approach in Practice</h2>
+    <p>Anthropic does not publish the exact training pipeline for any Claude model, but the Constitutional AI paper (2022) and subsequent "Claude's Character" and model card documents provide a picture of how CAI principles are applied in production.</p>
+
+    <div class="hierarchy">
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Training stages</div>
+            <div class="hierarchy-items">
+                <span class="hierarchy-item accent">Pre-training (base model)</span>
+                <span class="hierarchy-item accent">SFT (instruction following)</span>
+                <span class="hierarchy-item accent">SL-CAI (critique-revision)</span>
+                <span class="hierarchy-item accent">RLAIF (AI preference labels)</span>
+                <span class="hierarchy-item accent">RL-CAI (PPO/variant)</span>
+            </div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Constitution sources</div>
+            <div class="hierarchy-items">
+                <span class="hierarchy-item">UN Declaration of Human Rights</span>
+                <span class="hierarchy-item">Children's Online Privacy Protection Act</span>
+                <span class="hierarchy-item">Apple App Store ToS</span>
+                <span class="hierarchy-item">Anthropic internal principles</span>
+                <span class="hierarchy-item">Deontological ethics</span>
+                <span class="hierarchy-item">Virtue ethics</span>
+                <span class="hierarchy-item">Consequentialism</span>
+            </div>
+        </div>
+        <div class="hierarchy-level">
+            <div class="hierarchy-label">Evolution</div>
+            <div class="hierarchy-items">
+                <span class="hierarchy-item">Claude 1 (2023): first public CAI model</span>
+                <span class="hierarchy-item">Claude 2 (2023): extended constitution, improved harmlessness-helpfulness balance</span>
+                <span class="hierarchy-item">Claude 3 (2024): multi-tier Haiku/Sonnet/Opus, constitutional principles in model spec</span>
+                <span class="hierarchy-item">Claude 3.5+ (2024-25): public model spec as "soul document"</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">The Anthropic Model Spec</div>
+        <p>From Claude 3 onward, Anthropic publishes a <strong>Model Spec</strong> &mdash; a detailed document (tens of thousands of words) that articulates values, priorities, and behavioural guidelines for Claude. This is effectively a very expanded, human-readable form of the constitution, complementing the shorter principle list used in training. It is intended both as a training signal and as a public accountability document.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-07">
+    <div class="slide-number">07</div>
+    <h2>Tensions &mdash; Helpfulness vs Harmlessness vs Honesty</h2>
+    <p>Anthropic frames alignment around three properties: <strong>Helpful</strong> (assists the user in achieving their goals), <strong>Harmless</strong> (avoids producing outputs that cause harm to users, third parties, or society), and <strong>Honest</strong> (doesn't deceive, acknowledges uncertainty, doesn't pretend to have capabilities it lacks). These are not always compatible.</p>
+
+    <div class="diagram-grid cols-3">
+        <div class="diagram-panel accent-border">
+            <h4>H vs H: Help vs Harm</h4>
+            <p>A user asks for detailed instructions on a dual-use topic (chemistry, security, medicine). Being <em>helpful</em> means giving accurate, complete information. Being <em>harmless</em> means not enabling misuse. The model must estimate the realistic population of people asking and the marginal harm from its answer vs freely available information.</p>
+            <p><strong>CAI lever:</strong> harmlessness principles weighted by severity; constitution includes "the assistant should still try to help with legitimate requests even in sensitive domains".</p>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>H vs H: Harm vs Honesty</h4>
+            <p>The model is asked a question where the most accurate answer could be distressing or dangerous (e.g. detailed information about self-harm methods requested by someone in crisis). Being <em>honest</em> means not withholding accurate information. Being <em>harmless</em> means not providing content that could directly facilitate harm.</p>
+            <p><strong>CAI lever:</strong> harm avoidance generally wins over completeness; safe messaging guidelines apply in high-risk categories.</p>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>H vs H: Honest vs Helpful</h4>
+            <p>The user is clearly wrong about something and wants validation. Being <em>helpful</em> in the short term means agreeing (user satisfaction). Being <em>honest</em> means correcting the error. Sycophancy training bias (from preference data labelled by people who prefer agreement) can make this tension worse.</p>
+            <p><strong>CAI lever:</strong> explicit anti-sycophancy principles in the constitution; honesty principles that reward calibrated correction over agreement.</p>
+        </div>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">Priority ordering</div>
+        <p>Anthropic's published model spec states a clear priority: broadly safe &gt; broadly ethical &gt; adherent to Anthropic's principles &gt; genuinely helpful. In practice, the vast majority of Claude's interactions involve no conflict between these &mdash; the priority ordering is only invoked when genuine conflicts arise.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-08">
+    <div class="slide-number">08</div>
+    <h2>Limits &mdash; What CAI Doesn't Solve</h2>
+    <p>Constitutional AI is a significant advance in scalable alignment, but it has real limitations that should be understood by anyone deploying or evaluating CAI-trained models.</p>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Limitation</th><th>Why it's a problem</th><th>Partial mitigations</th></tr></thead>
+            <tbody>
+                <tr><td><strong>Constitution quality ceiling</strong></td><td>The model can only be as aligned as the constitution is well-written. Vague, contradictory, or incomplete principles produce vague, contradictory, or incomplete behaviour.</td><td>Iterative red-teaming; publish constitution for external review; multi-stakeholder authorship</td></tr>
+                <tr><td><strong>Base model knowledge</strong></td><td>CAI teaches the model what to say; it doesn't remove harmful knowledge from the base model's weights. A sufficiently skilled adversary can bypass Constitutional training via jailbreaks.</td><td>Adversarial training; multi-turn robustness; defence-in-depth (system prompts, filters)</td></tr>
+                <tr><td><strong>RLAIF inherits base biases</strong></td><td>The AI labeller used for RLAIF has its own biases (position preference, verbosity preference, cultural assumptions). These propagate into the reward model.</td><td>Ensemble labelling; position-swap debiasing; human spot-check audits of AI labels</td></tr>
+                <tr><td><strong>Static constitution</strong></td><td>The world changes; new harms emerge (new technologies, new social contexts). A fixed constitution can become outdated without model retraining.</td><td>Modular constitutions; constitutional updates with targeted retraining; Constitutional model spec as living document</td></tr>
+                <tr><td><strong>Helpfulness-harmlessness over-correction</strong></td><td>Early CAI models (Claude 1) were notably over-cautious, refusing legitimate requests. The harmlessness objective can dominate helpfulness if not explicitly balanced.</td><td>Explicit helpfulness principles in constitution; harmlessness score normalised against helpfulness loss</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="callout">
+        <div class="callout-label">What CAI does not replace</div>
+        <p>CAI does not replace: system-level safeguards (output filtering, rate limiting, abuse detection), human red-teaming for novel attack vectors, post-deployment monitoring, legal and regulatory compliance review, or the need for ongoing alignment research. Constitutional training is one layer in a defence-in-depth alignment strategy, not a comprehensive solution.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-09">
+    <div class="slide-number">09</div>
+    <h2>What to Take Away</h2>
+    <ul>
+        <li><strong>CAI replaces human harm-labelling with AI critique-revision.</strong> Humans write principles once; the model critiques and revises its own outputs. Human labellers never need to review harmful content directly.</li>
+        <li><strong>Two stages: SL-CAI then RL-CAI.</strong> Stage 1 builds better SFT data via critique-revision. Stage 2 uses AI-generated preference labels for RLAIF, replacing the expensive human RM labelling pipeline.</li>
+        <li><strong>Critique-revision uses a sampled constitution principle as a lens.</strong> Each critique prompt draws a random principle; this ensures diverse coverage of the full harm surface across the training set.</li>
+        <li><strong>Principle design is difficult.</strong> Comparative phrasing, diverse harm coverage, positive helpfulness principles, and explicit priority ordering all matter. The constitution is the single point of leverage for the entire pipeline.</li>
+        <li><strong>RLAIF is 100&ndash;1 000&times; cheaper than RLHF</strong> and can generate millions of preference labels. The trade-off is inheriting the AI judge's biases &mdash; debiasing techniques (position swap, ensemble) are important.</li>
+        <li><strong>The HHH triangle has genuine tensions.</strong> Anthropic's priority ordering (safety &gt; ethics &gt; principles &gt; helpfulness) resolves conflicts when they arise, but most interactions involve no conflict at all.</li>
+        <li><strong>CAI has limits.</strong> It doesn't remove knowledge from the base model, inherits RLAIF biases, and can become outdated as new harms emerge. It's one layer of a defence-in-depth strategy.</li>
+    </ul>
+
+    <div class="callout">
+        <div class="callout-label">Series complete</div>
+        <p>You've covered the full fine-tuning and alignment stack: SFT pipelines (Deck 01), LoRA &amp; PEFT (Deck 02), RLHF &amp; PPO (Deck 03), DPO and its cousins (Deck 04), and Constitutional AI &amp; RLAIF (Deck 05). The next natural area to explore is inference-time alignment and model evaluation &mdash; how you verify that all this training actually achieved its objectives in deployment.</p>
+    </div>
+</section>
+
+<footer class="footer">
+    <p>Part of the <a href="https://github.com/BrendanJamesLynskey/LLM_Hub_Fine_Tuning">Fine-Tuning &amp; PEFT Series</a></p>
+    <p style="margin-top: 0.5rem; font-size: 0.8rem;"><a href="https://github.com/BrendanJamesLynskey/LLM_Hub_Fine_Tuning">Back to Series Index</a></p>
+</footer>
+<script>
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.slide').forEach(slide => {
+        slide.style.opacity = '0';
+        slide.style.transform = 'translateY(30px)';
+        slide.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(slide);
+    });
+</script>
+</body>
+</html>
